@@ -4,13 +4,22 @@ function doit
 
 
 
-
 function doit2
 	close all
 	clear all	
-	xe = 0.0:0.00001:0.3;
-	ye = 0.0:0.00001:0.3;
 
+	%% this is the figure we will be using	
+	fig1 = figure(1);
+
+
+	%% create the AVI file
+	aviobj = avifile('2dofMovie.avi','compression','None');
+	aviobj.fps = 20;
+	
+
+	xe = 0.0:0.01:0.2;
+	%ye = 0.0:0.001:0.1;
+	ye = xe*0;
 	d0 = [pi/4, pi/2];
 	d00 = d0;
 	L = [0.5, 0.5];
@@ -30,13 +39,20 @@ function doit2
 	axis square
 	grid off
 	set(h,'EraseMode','xor','MarkerSize',18)
+	
+	%% record the size of the plot window
+	winsize = get(fig1,'Position');
+	%% adjust the window to include the whole figure
+	winsize(1:2) = [0,0];
+	numframes = length(xe);
+	A = moviein(numframes, fig1, winsize);
 
-while(1)
 	d0 = d00;
 	x00 = x0;
 	y00 = y0;
-	for i = 1:length(x)
+	for i = 1:length(xe)
 		drawnow
+		disp(['xe = ',num2str(xe(i))]);
 		x1 = x0+xe(i);
 		y1 = y0+ye(i);
 		goFlag = 0;
@@ -61,12 +77,9 @@ while(1)
 			%% apply gains
 			kx = 1;
 			ky = 1;
-			kxd = 0.5;
-			kyd = 0.5;
 
 			k  = [kx, ky];
-			kd = [kxd, kyd];
-			rek = re.*k + re.*kd;
+			rek = rg - re.*k ;  
 			
 			[d1, e1] = jacobianIk2Dof( rek, L, d0 );
 			ae = sum(e1.^2).^0.5;
@@ -84,8 +97,8 @@ while(1)
 			end
 		end
 
-		x0 = x1;
-		y0 = y1;
+		%x0 = x1;
+		%y0 = y1;
 
 		%x0 = xy_end(1);
 		%y0 = xy_end(2);
@@ -95,7 +108,7 @@ while(1)
 		
 		a = ((x(3)-x(2))^2 + (y(3)-y(2))^2)^0.5;
 		b = ((x(2)-x(1))^2 + (y(2)-y(1))^2)^0.5;
-		disp(['all 0.5s = ', num2str(a), '  ', num2str(b), '  x1 = ', num2str(x1),'  y1 = ', num2str(y1), '  Err = ', num2str(ae)])
+		disp(['all 0.5s = ', num2str(a), '  ', num2str(b), '  x1 = ', num2str(x0),'  y1 = ', num2str(y0), '  Err = ', num2str(ae)])
 		
 		
 		%h = plot(x,y);
@@ -105,11 +118,14 @@ while(1)
 		grid off
 		set(h, 'YData',y, 'XData',x);%,'EraseMode','xor','MarkerSize',18)
 		pause(0.05)
+		f = getframe(fig1);
+		aviobj = addframe(aviobj,f);
+		%A(:,i) = getframe(fig1,winsize);
 	end
-		
-end
-	
+%	save theMovie.mat A
+%	mpgwrite(A,jet,'movie.mpg');
 
+aviobj = close(aviobj);
 
 
 
